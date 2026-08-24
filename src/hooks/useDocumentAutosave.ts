@@ -8,12 +8,15 @@ export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 /**
  * Encapsula la carga inicial, el autosave con debounce y el guardado
- * manual de un documento fijo contra el backend. No conoce el componente
+ * manual de un documento contra el backend. No conoce el componente
  * de React que lo usa: recibe un getter para acceder a la instancia
  * `DocumentEditor` de Syncfusion en el momento en que la necesita.
+ *
+ * El nombre puede ser null (p.ej. mientras no hay documento activo).
+ * En ese caso, las operaciones de carga/guardado no se ejecutan.
  */
 export function useDocumentAutosave(
-  nombre: string,
+  nombre: string | null,
   getEditor: () => DocumentEditor | null | undefined,
 ) {
   const [status, setStatus] = useState<SaveStatus>('idle');
@@ -35,6 +38,9 @@ export function useDocumentAutosave(
   }, []);
 
   const performSave = useCallback(async () => {
+    // No guardar si no hay nombre de documento activo.
+    if (!nombre) return;
+
     const editor = getEditor();
     if (!editor) return;
 
@@ -78,6 +84,9 @@ export function useDocumentAutosave(
   }, [clearPendingSave, saveNow]);
 
   const loadInitial = useCallback(async () => {
+    // No cargar si no hay nombre de documento activo.
+    if (!nombre) return;
+
     const editor = getEditor();
     if (!editor) return;
 
@@ -85,17 +94,25 @@ export function useDocumentAutosave(
       const contenido = await getDocument(nombre);
       if (contenido !== null) {
         editor.open(JSON.stringify(contenido));
+      } else {
+        // Documento nuevo: limpiar el editor para que arranque vacio.
+        // Esto es necesario porque el editor ya puede tener contenido
+        // del documento anterior al cambiar de documento.
+        editor.openBlank();
       }
-      // Si contenido es null (404), el editor arranca vacio: comportamiento
-      // esperado en el primer uso, no es un error.
     } catch (err) {
       console.error(`Error cargando documento "${nombre}":`, err);
       setStatus('error');
     }
   }, [getEditor, nombre]);
 
-  // Limpia el timer pendiente si el componente se desmonta.
-  useEffect(() => clearPendingSave, [clearPendingSave]);
+  // Limpia el timer pendiente si el componente se desmonta o si cambia el nombre.
+  useEffect(() => {
+    return () => {
+      clearPendingSave();
+      pendingSaveRef.current = false;
+    };
+  }, [nombre, clearPendingSave]);
 
   return { status, loadInitial, scheduleSave, saveNow };
 }

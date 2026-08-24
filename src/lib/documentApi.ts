@@ -10,6 +10,14 @@ function urlFor(nombre: string): string {
 }
 
 /**
+ * Regex de validacion de nombres de documentos.
+ * Solo permite letras, numeros, guiones y guiones bajos.
+ * Usado tanto en frontend (prompt de nuevo documento) como
+ * referencia del backend que aplica la misma validacion.
+ */
+export const NOMBRE_VALIDO = /^[a-zA-Z0-9_-]+$/;
+
+/**
  * Obtiene el contenido SFDT guardado de un documento.
  * Devuelve `null` si el documento todavia no existe (404), que es el
  * comportamiento esperado en el primer uso. Lanza excepcion ante
@@ -43,4 +51,20 @@ export async function saveDocument(nombre: string, sfdt: string): Promise<void> 
   if (!response.ok) {
     throw new Error(`Error al guardar el documento (status ${response.status})`);
   }
+}
+
+/**
+ * Lista todos los documentos existentes en el backend con sus metadatos.
+ * Devuelve un array de objetos con nombre y ultima modificacion.
+ */
+export async function listDocuments(): Promise<
+  Array<{ nombre: string; ultimaModificacion: string }>
+> {
+  const response = await fetch(`${BACKEND_URL}/api/documents/`);
+
+  if (!response.ok) {
+    throw new Error(`Error al listar documentos (status ${response.status})`);
+  }
+
+  return response.json();
 }
