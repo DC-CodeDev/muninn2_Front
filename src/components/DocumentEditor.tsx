@@ -15,6 +15,7 @@ import {
   TextFormFieldDialog,
   DropDownFormFieldDialog,
   CheckBoxFormFieldDialog,
+  ImageResizer,
 } from '@syncfusion/ej2-react-documenteditor';
 import { useDocumentAutosave, type SaveStatus } from '../hooks/useDocumentAutosave';
 
@@ -45,6 +46,13 @@ import { useDocumentAutosave, type SaveStatus } from '../hooks/useDocumentAutosa
 // que SÍ viene en `true` por default (a diferencia de enableSelection,
 // enableEditor, etc.), así que con enableEditor prendido, requiredModules()
 // los pide sí o sí.
+//
+// `ImageResizer`: habilita los handles de redimensión/arrastre que aparecen
+// al hacer click sobre una imagen ya insertada (drag para agrandar/achicar,
+// mover de posición). Como el resto de los módulos opcionales, viene atado
+// a un flag propio, `enableImageResizer`, que es `false` por default en
+// DocumentEditor — sin el flag la imagen se inserta bien pero queda "muerta"
+// al click (ni handles ni drag).
 DocumentEditorComponent.Inject(
   Selection,
   Editor,
@@ -59,7 +67,8 @@ DocumentEditorComponent.Inject(
   Optimized,
   TextFormFieldDialog,
   DropDownFormFieldDialog,
-  CheckBoxFormFieldDialog
+  CheckBoxFormFieldDialog,
+  ImageResizer
 );
 
 // Default local: apunta al contenedor Docker del Word Processor Server
@@ -130,6 +139,7 @@ export default function DocumentEditor({ nombre, onStatusChange, children }: Doc
         enableWordExport={true}
         enableTextExport={true}
         enablePrint={true}
+        enableImageResizer={true}
         created={() => setIsEditorReady(true)}
         contentChange={() => scheduleSave()}
       />

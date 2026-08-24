@@ -1,0 +1,62 @@
+/*
+ * Overrides de integración: Syncfusion Document Editor.
+ * Un archivo por integración; este cubre el tema del editor de documentos.
+ *
+ * El pageContainer del Document Editor (clase .e-de-background) vive en el DOM
+ * principal y material.css le fija background-color: #fff hardcodeado.
+ * Aquí se reemplaza por el token de tema de la app en modo oscuro.
+ */
+[data-theme='dark'] .e-de-background {
+  background-color: var(--color-pagina-documento);
+}
+
+/* Scrollbar del visor del Document Editor (id del contenedor = `${editorId}_viewerContainer`,
+ * con editorId fijado en DocumentEditor.tsx). La barra nativa desentona con el
+ * tema; se la estiliza con los tokens de la app, así que se adapta sola al
+ * togglear dark/light. Para ocultarla del todo: scrollbar-width: none y
+ * display: none en ::-webkit-scrollbar.
+ */
+#muninn-document-editor_viewerContainer {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+#muninn-document-editor_viewerContainer::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+#muninn-document-editor_viewerContainer::-webkit-scrollbar-track {
+  background: transparent;
+}
+#muninn-document-editor_viewerContainer::-webkit-scrollbar-thumb {
+  background-color: var(--border-strong);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+#muninn-document-editor_viewerContainer::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-muted);
+}
+
+/* Caret de texto (.e-de-blink-cursor) en modo oscuro. material.css le fija
+ * border-left-color: rgba(0, 0, 0, 0.87) casi negro, invisible sobre el fondo
+ * oscuro del papel. Se fuerza blanco solo en dark; en claro queda el original.
+ */
+[data-theme='dark'] .e-de-blink-cursor {
+  border-left-color: #FFFFFF;
+}
+
+/* Grosor del caret en ambos temas: material.css usa border-left: 1px, muy fino
+ * sobre el papel nuevo. Regla base (sin scope de tema) para que aplique igual
+ * en claro y oscuro; solo cambia el ancho, el color lo fija la regla de dark.
+ */
+.e-de-blink-cursor {
+  border-left-width: 6px;
+}
+
+/* EXPERIMENTO — transición del caret al moverse (click, flechas, escritura).
+ * Hace que el caret deslice en vez de saltar de posición. Si al escribir texto
+ * seguido se siente con lag, revertir borrando este bloque completo.
+ */
+.e-de-blink-cursor {
+  transition: left 120ms ease-out, top 120ms ease-out;
+}

@@ -13,6 +13,7 @@ import '@syncfusion/ej2-splitbuttons/styles/material.css';
 import '@syncfusion/ej2-notifications/styles/material.css';
 import '@syncfusion/ej2-react-documenteditor/styles/material.css';
 
+import './styles/document-editor-overrides.css';
 import './styles/index.css';
 import App from './App.tsx';
 

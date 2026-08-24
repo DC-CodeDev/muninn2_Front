@@ -10,6 +10,7 @@ interface FormatState {
   italic: boolean;
   underline: boolean;
   alignment: 'Left' | 'Center' | 'Right' | 'Justify';
+  isImageSelected: boolean;
 }
 
 const INITIAL_STATE: FormatState = {
@@ -20,6 +21,7 @@ const INITIAL_STATE: FormatState = {
   italic: false,
   underline: false,
   alignment: 'Left',
+  isImageSelected: false,
 };
 
 const FONT_FAMILY_OPTIONS = ['Fira Code', 'Outfit', 'Georgia', 'Arial', 'Times New Roman'] as const;
@@ -43,6 +45,7 @@ export function useFormatControls(getEditor: () => DocumentEditor | null | undef
         italic: charFormat.italic || false,
         underline: charFormat.underline !== 'None',
         alignment: paraFormat.textAlignment || 'Left',
+        isImageSelected: editor.selection.isImageSelected,
       });
     } catch (error) {
       console.error('Error updating format state:', error);
@@ -129,6 +132,41 @@ export function useFormatControls(getEditor: () => DocumentEditor | null | undef
     [getEditor, updateFormatState],
   );
 
+  // Ancho de imagen tipo Notion: "simple" (mitad de la columna de texto) o
+  // "completo" (columna entera), en vez de resize libre continuo como único
+  // mecanismo. `fraction` es la porción del ancho útil de columna que va a
+  // ocupar la imagen.
+  const applyImageWidth = useCallback(
+    (fraction: 0.5 | 1) => {
+      const editor = getEditor();
+      if (!editor || !editor.selection.isImageSelected) return;
+
+      const { pageWidth, leftMargin, rightMargin } = editor.selection.sectionFormat;
+      const columnWidth = pageWidth - leftMargin - rightMargin;
+      const newWidth = columnWidth * fraction;
+
+      const imageFormat = editor.selection.imageFormat;
+      // La proporción para recalcular el alto se toma del tamaño ACTUAL de
+      // la imagen en el momento del click, no de un tamaño "original"
+      // persistido: si la imagen fue deformada con el ImageResizer libre
+      // antes de usar estos botones, esa deformación se propaga. Aceptado
+      // por ahora — no se justifica infraestructura de metadata persistente
+      // para esto todavía.
+      const aspectRatio = imageFormat.height / imageFormat.width;
+
+      // `width`/`height` en `SelectionImageFormat` son de solo lectura (no
+      // hay setter pese a lo que muestra la documentación oficial con
+      // asignación directa): `resize()` es el método real que aplica el
+      // nuevo tamaño en esta versión de la librería.
+      imageFormat.resize(newWidth, newWidth * aspectRatio);
+      updateFormatState();
+    },
+    [getEditor, updateFormatState],
+  );
+
+  const setImageWidthSimple = useCallback(() => applyImageWidth(0.5), [applyImageWidth]);
+  const setImageWidthFull = useCallback(() => applyImageWidth(1), [applyImageWidth]);
+
   const clearFormatting = useCallback(() => {
     const editor = getEditor();
     if (!editor) return;
@@ -146,6 +184,8 @@ export function useFormatControls(getEditor: () => DocumentEditor | null | undef
     toggleUnderline,
     setAlignment,
     clearFormatting,
+    setImageWidthSimple,
+    setImageWidthFull,
     FONT_FAMILY_OPTIONS,
   };
 }
