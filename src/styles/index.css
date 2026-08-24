@@ -1,5 +1,7 @@
 /* Import design tokens and fonts */
 @import './tokens.css';
+@import '@fontsource/fira-code/index.css';
+@import '@fontsource/outfit/index.css';
 
 * {
   box-sizing: border-box;

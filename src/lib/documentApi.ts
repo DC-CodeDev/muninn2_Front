@@ -58,7 +58,7 @@ export async function saveDocument(nombre: string, sfdt: string): Promise<void> 
  * Devuelve un array de objetos con nombre y ultima modificacion.
  */
 export async function listDocuments(): Promise<
-  Array<{ nombre: string; ultimaModificacion: string }>
+  Array<{ nombre: string; fechaModificacion: string }>
 > {
   const response = await fetch(`${BACKEND_URL}/api/documents/`);
 

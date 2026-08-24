@@ -45,7 +45,7 @@ export default function App() {
 
     setDocuments((prev) => [
       ...prev,
-      { nombre, ultimaModificacion: new Date().toISOString() },
+      { nombre, fechaModificacion: new Date().toISOString() },
     ]);
 
     setActiveDocument(nombre);
@@ -79,7 +79,9 @@ export default function App() {
             <DocumentTopbar documentName={activeDocument} saveStatus={saveStatus} />
 
             <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
-              <DocumentEditor nombre={activeDocument} onStatusChange={setSaveStatus} />
+              <DocumentEditor nombre={activeDocument} onStatusChange={setSaveStatus}>
+                {(getEditor) => <EditingSidebar collapsed={rightCollapsed} onToggle={toggleRight} getEditor={getEditor} />}
+              </DocumentEditor>
             </div>
           </>
         ) : (
@@ -114,8 +116,6 @@ export default function App() {
           </>
         )}
       </div>
-
-      <EditingSidebar collapsed={rightCollapsed} onToggle={toggleRight} />
     </div>
   );
 }

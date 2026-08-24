@@ -1,6 +1,6 @@
 export interface DocumentMetadata {
   nombre: string;
-  ultimaModificacion: string;
+  fechaModificacion: string;
 }
 
 interface DocumentSidebarProps {
@@ -381,7 +381,7 @@ export default function DocumentSidebar({
                       : 'var(--text-faint)',
                 }}
               >
-                {formatDate(doc.ultimaModificacion)}
+                {formatDate(doc.fechaModificacion)}
               </div>
             </button>
           ))
