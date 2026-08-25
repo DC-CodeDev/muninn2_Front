@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import {
   DocumentEditorComponent,
   Selection,
@@ -86,7 +86,18 @@ interface DocumentEditorProps {
   children?: (getEditor: () => DocumentEditorComponent | null) => React.ReactNode;
 }
 
-export default function DocumentEditor({ nombre, onStatusChange, children }: DocumentEditorProps) {
+// Handle imperativo expuesto via ref al padre (App.tsx): permite forzar y
+// esperar el guardado del documento activo antes de, por ejemplo, cambiar
+// a otro documento del sidebar. Reutiliza `saveNow` del hook de autosave,
+// no duplica la logica de guardado.
+export interface DocumentEditorHandle {
+  saveNow: () => Promise<void>;
+}
+
+function DocumentEditor(
+  { nombre, onStatusChange, children }: DocumentEditorProps,
+  ref: React.Ref<DocumentEditorHandle>,
+) {
   const serviceUrl =
     import.meta.env.VITE_SYNCFUSION_SERVICE_URL || DEFAULT_SERVICE_URL;
 
@@ -95,10 +106,12 @@ export default function DocumentEditor({ nombre, onStatusChange, children }: Doc
 
   const [isEditorReady, setIsEditorReady] = useState(false);
 
-  const { status, loadInitial, scheduleSave } = useDocumentAutosave(
+  const { status, loadInitial, scheduleSave, saveNow } = useDocumentAutosave(
     nombre,
     getEditor,
   );
+
+  useImperativeHandle(ref, () => ({ saveNow }), [saveNow]);
 
   // Notificar al componente padre sobre cambios de estado
   useEffect(() => {
@@ -146,12 +159,20 @@ export default function DocumentEditor({ nombre, onStatusChange, children }: Doc
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Tab') return;
       // Siempre preventDefault mientras el editor tiene foco: evita que el
-      // Tab se escape a navegación de foco del navegador, aunque el cursor
-      // no esté en una lista (en ese caso `updateListLevel` es un no-op
-      // seguro confirmado por lectura de código - no rompe nada, pero
-      // tampoco genera indentación todavía; eso queda para otra sesión).
+      // Tab se escape a navegación de foco del navegador, tanto en listas
+      // como en párrafos normales.
       event.preventDefault();
-      editor.editor.updateListLevel(!event.shiftKey);
+
+      // Mismo check que usa `useFormatControls` (`listId !== -1`) para
+      // saber si el párrafo actual pertenece a una lista - acá decide si
+      // Tab sube/baja nivel (nativo de Syncfusion) o inserta una
+      // tabulación como texto (párrafo normal, sin lista).
+      const isInList = editor.selection.paragraphFormat.listId !== -1;
+      if (isInList) {
+        editor.editor.updateListLevel(!event.shiftKey);
+      } else {
+        editor.editor.insertText('\t');
+      }
     };
 
     editableDiv.addEventListener('keydown', handleKeyDown);
@@ -193,3 +214,5 @@ export default function DocumentEditor({ nombre, onStatusChange, children }: Doc
     </div>
   );
 }
+
+export default forwardRef(DocumentEditor);

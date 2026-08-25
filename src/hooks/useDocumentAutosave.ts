@@ -30,6 +30,12 @@ export function useDocumentAutosave(
   const isSavingRef = useRef(false);
   const pendingSaveRef = useRef(false);
 
+  // Promesa del guardado en curso (incluyendo la repeticion encadenada por
+  // `pendingSaveRef`, si la hay). `saveNow` la devuelve para que un caller
+  // que necesite la confirmacion del guardado (p.ej. el cambio de
+  // documento activo) pueda hacer `await` en vez de dispararlo y seguir.
+  const inFlightSaveRef = useRef<Promise<void> | null>(null);
+
   const clearPendingSave = useCallback(() => {
     if (debounceRef.current !== null) {
       clearTimeout(debounceRef.current);
@@ -55,24 +61,32 @@ export function useDocumentAutosave(
       setStatus('error');
     } finally {
       isSavingRef.current = false;
-      if (pendingSaveRef.current) {
-        pendingSaveRef.current = false;
-        void performSave();
-      }
+    }
+
+    // Se resuelve la promesa de este `performSave` recien cuando termina
+    // tambien la repeticion encadenada (si la hubo), para que quien este
+    // esperando el `await` reciba la confirmacion del guardado con el
+    // contenido mas reciente, no solo del primer intento.
+    if (pendingSaveRef.current) {
+      pendingSaveRef.current = false;
+      await performSave();
     }
   }, [getEditor, nombre]);
 
-  const saveNow = useCallback(() => {
+  const saveNow = useCallback((): Promise<void> => {
     clearPendingSave();
 
     if (isSavingRef.current) {
       // Ya hay una request en curso: no se dispara una en paralelo, se
-      // encola una unica repeticion para cuando termine.
+      // encola una unica repeticion para cuando termine. Se devuelve la
+      // promesa del guardado en curso, que ahora encadena esa repeticion.
       pendingSaveRef.current = true;
-      return;
+      return inFlightSaveRef.current ?? Promise.resolve();
     }
 
-    void performSave();
+    const promise = performSave();
+    inFlightSaveRef.current = promise;
+    return promise;
   }, [clearPendingSave, performSave]);
 
   const scheduleSave = useCallback(() => {

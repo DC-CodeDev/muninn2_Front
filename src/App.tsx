@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import DocumentEditor from './components/DocumentEditor';
+import { useEffect, useRef, useState } from 'react';
+import DocumentEditor, { type DocumentEditorHandle } from './components/DocumentEditor';
 import DocumentSidebar, { type DocumentMetadata } from './components/DocumentSidebar';
 import DocumentTopbar from './components/DocumentTopbar';
 import EditingSidebar from './components/EditingSidebar';
@@ -13,6 +13,7 @@ export default function App() {
   const [activeDocument, setActiveDocument] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const { leftCollapsed, rightCollapsed, toggleLeft, toggleRight } = useSidebarCollapse();
+  const editorRef = useRef<DocumentEditorHandle>(null);
 
   useEffect(() => {
     async function loadDocs() {
@@ -26,7 +27,7 @@ export default function App() {
     void loadDocs();
   }, []);
 
-  const handleCreateNew = () => {
+  const handleCreateNew = async () => {
     const nombre = window.prompt(
       'Nombre del nuevo documento (solo letras, números, guiones y guiones bajos):',
     );
@@ -48,10 +49,32 @@ export default function App() {
       { nombre, fechaModificacion: new Date().toISOString() },
     ]);
 
+    // Mismo patron que handleSelectDocument: el documento activo (si lo
+    // hay) puede tener texto sin guardar. Esperar su guardado antes de
+    // activar este documento nuevo, para no pisarlo al montar el editor
+    // en blanco.
+    if (editorRef.current) {
+      await editorRef.current.saveNow();
+    }
+
     setActiveDocument(nombre);
   };
 
-  const handleSelectDocument = (nombre: string) => {
+  const handleSelectDocument = async (nombre: string) => {
+    if (nombre === activeDocument) return;
+
+    // Forzar y esperar el guardado del documento activo antes de
+    // desmontar/cambiar el editor al nuevo documento: si no se espera
+    // esta confirmacion, el `open`/`openBlank` del documento nuevo pisa
+    // el contenido sin guardar del anterior. Reutiliza `saveNow`, el
+    // mismo guardado que dispara el autosave por intervalo (no lo
+    // reemplaza, sigue corriendo igual como respaldo). Mientras se
+    // espera, el indicador "Guardando…" existente en DocumentTopbar se
+    // muestra solo porque `saveNow` setea el mismo `status` del hook.
+    if (editorRef.current) {
+      await editorRef.current.saveNow();
+    }
+
     setActiveDocument(nombre);
   };
 
@@ -79,7 +102,7 @@ export default function App() {
             <DocumentTopbar documentName={activeDocument} saveStatus={saveStatus} />
 
             <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
-              <DocumentEditor nombre={activeDocument} onStatusChange={setSaveStatus}>
+              <DocumentEditor ref={editorRef} nombre={activeDocument} onStatusChange={setSaveStatus}>
                 {(getEditor) => <EditingSidebar collapsed={rightCollapsed} onToggle={toggleRight} getEditor={getEditor} />}
               </DocumentEditor>
             </div>
