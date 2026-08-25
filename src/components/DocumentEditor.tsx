@@ -18,6 +18,7 @@ import {
   ImageResizer,
 } from '@syncfusion/ej2-react-documenteditor';
 import { useDocumentAutosave, type SaveStatus } from '../hooks/useDocumentAutosave';
+import type { UbicacionDocumento } from '../lib/documentApi';
 
 // Módulos requeridos para el DocumentEditor puro (sin Container ni toolbar nativa).
 // `Optimized` es obligatorio: `documentEditorSettings.enableOptimizedTextMeasuring`
@@ -78,10 +79,11 @@ const DEFAULT_SERVICE_URL = 'http://localhost:7002/api/documenteditor/';
 /**
  * Editor de documentos tipo Word con paginado A4 real (Syncfusion Document
  * Editor), conectado al backend propio para persistir un documento.
- * Recibe el nombre del documento como prop; puede ser null (editor vacio).
+ * Recibe la ubicacion (area + ruta + nombre) del documento como prop;
+ * puede ser null (editor vacio).
  */
 interface DocumentEditorProps {
-  nombre: string | null;
+  ubicacion: UbicacionDocumento | null;
   onStatusChange?: (status: SaveStatus) => void;
   children?: (getEditor: () => DocumentEditorComponent | null) => React.ReactNode;
 }
@@ -95,7 +97,7 @@ export interface DocumentEditorHandle {
 }
 
 function DocumentEditor(
-  { nombre, onStatusChange, children }: DocumentEditorProps,
+  { ubicacion, onStatusChange, children }: DocumentEditorProps,
   ref: React.Ref<DocumentEditorHandle>,
 ) {
   const serviceUrl =
@@ -103,11 +105,12 @@ function DocumentEditor(
 
   const containerRef = useRef<DocumentEditorComponent>(null);
   const getEditor = useCallback(() => containerRef.current, []);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   const [isEditorReady, setIsEditorReady] = useState(false);
 
   const { status, loadInitial, scheduleSave, saveNow } = useDocumentAutosave(
-    nombre,
+    ubicacion,
     getEditor,
   );
 
@@ -118,12 +121,12 @@ function DocumentEditor(
     onStatusChange?.(status);
   }, [status, onStatusChange]);
 
-  // Cargar el documento cada vez que cambia el nombre (solo si el editor ya está listo).
+  // Cargar el documento cada vez que cambia la ubicacion (solo si el editor ya está listo).
   useEffect(() => {
-    if (isEditorReady && nombre) {
+    if (isEditorReady && ubicacion) {
       void loadInitial();
     }
-  }, [nombre, isEditorReady, loadInitial]);
+  }, [ubicacion, isEditorReady, loadInitial]);
 
   // Tab/Shift+Tab dentro del editor -> subir/bajar nivel de lista (Word/
   // Notion), en vez de dejar que el navegador lo trate como foco estándar.
@@ -179,8 +182,48 @@ function DocumentEditor(
     return () => editableDiv.removeEventListener('keydown', handleKeyDown);
   }, [isEditorReady]);
 
+  // Re-medir el viewer cuando el contenedor cambia de tamaño (p.ej. al
+  // colapsar/expandir EditingSidebar).
+  //
+  // El `width`/`height` que le pasamos a DocumentEditorComponent son
+  // strings fijos ("100%"), así que nunca cambian como prop aunque el
+  // ancho real en píxeles del wrapper sí cambie por el layout flex al
+  // abrir o cerrar el panel derecho. Syncfusion solo llama a su propio
+  // `resize()` interno en el `onPropertyChanged` de `width`/`height`
+  // (ver document-editor.js, case 'width'/'height') - como acá ese
+  // string nunca varía, ese hook nunca dispara y el viewer se queda con
+  // el tamaño cacheado de antes. Resultado: al reabrir el panel el
+  // documento se sigue paginando con el ancho viejo (más ancho) y
+  // desborda el contenedor, generando el scroll horizontal.
+  //
+  // Un ResizeObserver sobre el wrapper detecta el cambio real de tamaño
+  // (lo dispare lo que lo dispare: este toggle, el sidebar izquierdo,
+  // resize de ventana) y fuerza `editor.resize()`, que sí re-mide
+  // `documentHelper.updateViewerSize()`. Se coalescea con
+  // requestAnimationFrame para no golpear resize() en cada frame de la
+  // transición CSS de 160ms del sidebar.
+  useEffect(() => {
+    if (!isEditorReady) return;
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+
+    let frame = 0;
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        containerRef.current?.resize();
+      });
+    });
+    observer.observe(wrapper);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [isEditorReady]);
+
   return (
-    <div style={{ display: 'flex', height: '100%', width: '100%' }}>
+    <div ref={wrapperRef} style={{ display: 'flex', height: '100%', width: '100%' }}>
       <DocumentEditorComponent
         ref={containerRef}
         id="muninn-document-editor"

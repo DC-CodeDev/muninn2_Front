@@ -325,8 +325,20 @@ export function useFormatControls(getEditor: () => DocumentEditor | null | undef
     editor.addEventListener('contentChange', handleListContentChange);
 
     return () => {
-      editor.selectionChange = undefined as any;
-      editor.removeEventListener('contentChange', handleListContentChange);
+      // Best-effort: si el componente se desmonta (p.ej. al volver del
+      // editor a la vista de arbol, ver App.tsx), Syncfusion puede haber
+      // destruido ya la instancia interna (`DocumentEditorComponent`
+      // corre su propio `destroy()` en el unmount) - acceder a sus
+      // setters/eventos en ese estado puede tirar. No hay nada que limpiar
+      // en una instancia ya destruida, así que un error acá se ignora en
+      // vez de tumbar el arbol de React (ver EditingSidebar, que no tenia
+      // error boundary y esto lo rompia entero).
+      try {
+        editor.selectionChange = undefined as any;
+        editor.removeEventListener('contentChange', handleListContentChange);
+      } catch (error) {
+        console.warn('useFormatControls: cleanup sobre editor ya destruido, ignorado.', error);
+      }
     };
   }, [getEditor, updateFormatState]);
 

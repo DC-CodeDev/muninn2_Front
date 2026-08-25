@@ -4,17 +4,31 @@ import { useFormatControls } from '../../hooks/useFormatControls';
 import { useDocumentTheme } from '../../hooks/useDocumentTheme';
 import { TextTabContent } from './TextTabContent';
 import { InsertTabContent } from './InsertTabContent';
+import { ActionsTabContent } from './ActionsTabContent';
 import { PlaceholderTabContent } from './PlaceholderTabContent';
 
-type TabType = 'texto' | 'parrafo' | 'insertar' | 'revisar';
+type TabType = 'texto' | 'acciones' | 'insertar' | 'revisar';
 
 interface EditingSidebarProps {
   collapsed: boolean;
   onToggle: () => void;
   getEditor: () => DocumentEditor | null | undefined;
+  /** Nombre del documento activo, usado como nombre de archivo al exportar desde la pestaña "Acciones". */
+  documentName: string;
+  /** Reemplaza el contenido del documento abierto por el de un .docx subido por el usuario. */
+  onImportarWord: (file: File) => Promise<void>;
+  /** Serializa el documento abierto a .docx real y devuelve el blob resultante para descargar. */
+  onExportarWord: () => Promise<Blob | null>;
 }
 
-export default function EditingSidebar({ collapsed, onToggle, getEditor }: EditingSidebarProps) {
+export default function EditingSidebar({
+  collapsed,
+  onToggle,
+  getEditor,
+  documentName,
+  onImportarWord,
+  onExportarWord,
+}: EditingSidebarProps) {
   const [activeTab, setActiveTab] = useState<TabType>('texto');
   const formatControls = useFormatControls(getEditor);
   useDocumentTheme(getEditor);
@@ -84,7 +98,7 @@ export default function EditingSidebar({ collapsed, onToggle, getEditor }: Editi
           </div>
         )}
 
-        {activeTab === 'parrafo' && (
+        {activeTab === 'acciones' && (
           <div
             style={{
               width: '32px',
@@ -186,7 +200,7 @@ export default function EditingSidebar({ collapsed, onToggle, getEditor }: Editi
           borderBottom: '1px solid var(--border-subtle)',
         }}
       >
-        {(['texto', 'parrafo', 'insertar', 'revisar'] as TabType[]).map((tab) => (
+        {(['texto', 'acciones', 'insertar', 'revisar'] as TabType[]).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -266,7 +280,13 @@ export default function EditingSidebar({ collapsed, onToggle, getEditor }: Editi
             paragraphStyleOptions={formatControls.PARAGRAPH_STYLE_OPTIONS}
           />
         )}
-        {activeTab === 'parrafo' && <PlaceholderTabContent />}
+        {activeTab === 'acciones' && (
+          <ActionsTabContent
+            documentName={documentName}
+            onImportarWord={onImportarWord}
+            onExportarWord={onExportarWord}
+          />
+        )}
         {activeTab === 'insertar' && (
           <InsertTabContent
             getEditor={getEditor}

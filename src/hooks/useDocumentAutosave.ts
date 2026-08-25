@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DocumentEditor } from '@syncfusion/ej2-react-documenteditor';
-import { getDocument, saveDocument } from '../lib/documentApi';
+import { leerDocumento, guardarDocumento, type UbicacionDocumento } from '../lib/documentApi';
 
 const AUTOSAVE_DEBOUNCE_MS = 5000;
 
@@ -12,11 +12,12 @@ export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
  * de React que lo usa: recibe un getter para acceder a la instancia
  * `DocumentEditor` de Syncfusion en el momento en que la necesita.
  *
- * El nombre puede ser null (p.ej. mientras no hay documento activo).
- * En ese caso, las operaciones de carga/guardado no se ejecutan.
+ * `ubicacion` (area + ruta + nombre del documento) puede ser null (p.ej.
+ * mientras no hay documento activo). En ese caso, las operaciones de
+ * carga/guardado no se ejecutan.
  */
 export function useDocumentAutosave(
-  nombre: string | null,
+  ubicacion: UbicacionDocumento | null,
   getEditor: () => DocumentEditor | null | undefined,
 ) {
   const [status, setStatus] = useState<SaveStatus>('idle');
@@ -44,8 +45,8 @@ export function useDocumentAutosave(
   }, []);
 
   const performSave = useCallback(async () => {
-    // No guardar si no hay nombre de documento activo.
-    if (!nombre) return;
+    // No guardar si no hay documento activo.
+    if (!ubicacion) return;
 
     const editor = getEditor();
     if (!editor) return;
@@ -54,10 +55,10 @@ export function useDocumentAutosave(
     setStatus('saving');
     try {
       const sfdt = editor.serialize();
-      await saveDocument(nombre, sfdt);
+      await guardarDocumento(ubicacion.area, ubicacion.ruta, ubicacion.documento, sfdt);
       setStatus('saved');
     } catch (err) {
-      console.error(`Error guardando documento "${nombre}":`, err);
+      console.error(`Error guardando documento "${ubicacion.documento}":`, err);
       setStatus('error');
     } finally {
       isSavingRef.current = false;
@@ -71,7 +72,7 @@ export function useDocumentAutosave(
       pendingSaveRef.current = false;
       await performSave();
     }
-  }, [getEditor, nombre]);
+  }, [getEditor, ubicacion]);
 
   const saveNow = useCallback((): Promise<void> => {
     clearPendingSave();
@@ -98,14 +99,14 @@ export function useDocumentAutosave(
   }, [clearPendingSave, saveNow]);
 
   const loadInitial = useCallback(async () => {
-    // No cargar si no hay nombre de documento activo.
-    if (!nombre) return;
+    // No cargar si no hay documento activo.
+    if (!ubicacion) return;
 
     const editor = getEditor();
     if (!editor) return;
 
     try {
-      const contenido = await getDocument(nombre);
+      const contenido = await leerDocumento(ubicacion.area, ubicacion.ruta, ubicacion.documento);
       if (contenido !== null) {
         editor.open(JSON.stringify(contenido));
       } else {
@@ -115,18 +116,18 @@ export function useDocumentAutosave(
         editor.openBlank();
       }
     } catch (err) {
-      console.error(`Error cargando documento "${nombre}":`, err);
+      console.error(`Error cargando documento "${ubicacion.documento}":`, err);
       setStatus('error');
     }
-  }, [getEditor, nombre]);
+  }, [getEditor, ubicacion]);
 
-  // Limpia el timer pendiente si el componente se desmonta o si cambia el nombre.
+  // Limpia el timer pendiente si el componente se desmonta o si cambia la ubicacion.
   useEffect(() => {
     return () => {
       clearPendingSave();
       pendingSaveRef.current = false;
     };
-  }, [nombre, clearPendingSave]);
+  }, [ubicacion, clearPendingSave]);
 
   return { status, loadInitial, scheduleSave, saveNow };
 }

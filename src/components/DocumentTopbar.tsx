@@ -4,9 +4,21 @@ import { type SaveStatus } from '../hooks/useDocumentAutosave';
 interface DocumentTopbarProps {
   documentName: string;
   saveStatus?: SaveStatus;
+  /** Color hex del Area contenedor (punto de 6px antes del breadcrumb). */
+  areaColor?: string;
+  /** Nombre de la carpeta contenedora inmediata, o el nombre del Area si el documento esta en la raiz. Omitir oculta el breadcrumb. */
+  carpetaNombre?: string;
+  /** Vuelve a la vista de arbol (carpeta contenedora), preservando ruta/seleccion. Ver 3d del diseño de referencia. */
+  onBack?: () => void;
 }
 
-export default function DocumentTopbar({ documentName, saveStatus = 'idle' }: DocumentTopbarProps) {
+export default function DocumentTopbar({
+  documentName,
+  saveStatus = 'idle',
+  areaColor,
+  carpetaNombre,
+  onBack,
+}: DocumentTopbarProps) {
   const getStatusInfo = () => {
     switch (saveStatus) {
       case 'saving':
@@ -42,6 +54,50 @@ export default function DocumentTopbar({ documentName, saveStatus = 'idle' }: Do
           gap: '10px',
         }}
       >
+        {onBack && (
+          <button
+            onClick={onBack}
+            title="Volver a la carpeta (⌘[)"
+            style={{
+              width: '24px',
+              height: '24px',
+              borderRadius: 'var(--radius-md)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'var(--surface)',
+              border: '1px solid var(--border)',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="var(--text-secondary)" strokeWidth="1.4">
+              <path d="M9.5 3.5L5 8l4.5 4.5"></path>
+            </svg>
+          </button>
+        )}
+
+        {areaColor && (
+          <span
+            style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '2px',
+              backgroundColor: areaColor,
+              flexShrink: 0,
+            }}
+          />
+        )}
+
+        {carpetaNombre && (
+          <>
+            <span style={{ fontSize: 'var(--font-size-xl)', color: 'var(--text-muted)' }}>
+              {carpetaNombre}
+            </span>
+            <span style={{ fontSize: 'var(--font-size-xl)', color: 'var(--text-faint)' }}>/</span>
+          </>
+        )}
+
         <svg
           width="13"
           height="13"

@@ -116,15 +116,25 @@ export function useDocumentTheme(getEditor: () => DocumentEditor | null | undefi
       });
       return () => {
         cancelAnimationFrame(raf);
-        if (editor) {
-          editor.documentChange = undefined as any;
+        // Ver el comment doc del otro cleanup mas abajo: mismo motivo
+        // (instancia de Syncfusion ya destruida al desmontar).
+        try {
+          if (editor) editor.documentChange = undefined as any;
+        } catch (error) {
+          console.warn('useDocumentTheme: cleanup sobre editor ya destruido, ignorado.', error);
         }
       };
     }
 
     return () => {
-      if (editor) {
-        editor.documentChange = undefined as any;
+      // Best-effort, igual que en useFormatControls: al desmontar (volver
+      // del editor a la vista de arbol), Syncfusion puede haber destruido
+      // ya la instancia interna - no hay nada que limpiar ahi, así que se
+      // ignora en vez de tumbar el arbol de React.
+      try {
+        if (editor) editor.documentChange = undefined as any;
+      } catch (error) {
+        console.warn('useDocumentTheme: cleanup sobre editor ya destruido, ignorado.', error);
       }
     };
   }, [theme, getEditor]);
