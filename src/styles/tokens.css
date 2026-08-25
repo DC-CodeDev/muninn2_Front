@@ -27,7 +27,8 @@
   --status-error: #C4746A;
   --page: #1F1F1E;
   --page-text: #D8D4CC;
-  --color-pagina-documento: var(--surface-raised);
+  --color-pagina-documento: var(--bg-base);
+  --color-contenedor-documento: var(--bg-canvas);
 
   /* === TYPOGRAPHY === */
   --font-ui: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
@@ -95,5 +96,6 @@
   --status-error: #A9503F;
   --page: #FDFCFA;
   --page-text: #3A372F;
-  --color-pagina-documento: var(--surface-raised);
+  --color-pagina-documento: var(--bg-base);
+  --color-contenedor-documento: var(--bg-canvas);
 }

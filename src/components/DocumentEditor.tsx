@@ -112,6 +112,52 @@ export default function DocumentEditor({ nombre, onStatusChange, children }: Doc
     }
   }, [nombre, isEditorReady, loadInitial]);
 
+  // Tab/Shift+Tab dentro del editor -> subir/bajar nivel de lista (Word/
+  // Notion), en vez de dejar que el navegador lo trate como foco estándar.
+  //
+  // Syncfusion NO intercepta Tab en esta versión: el `case 9` (Tab) del
+  // switch de `onKeyDownInternal` viene comentado en el source
+  // (selection.js, tanto para Tab solo como para Ctrl+Tab) - confirmado
+  // leyendo el .js, no es una suposición. Sin un listener propio el evento
+  // se escapa tal cual como navegación de foco del navegador.
+  //
+  // El keydown real de tipeo no pasa por el DOM de esta app: en desktop
+  // (`!Browser.isDevice`), Syncfusion crea internamente un iframe oculto
+  // (`documentHelper.iframe`, clase `e-de-text-target`) con un
+  // `contenteditable` adentro (`documentHelper.editableDiv`) que es el nodo
+  // que efectivamente tiene el foco y recibe los keydown al escribir -
+  // confirmado en viewer.js (`createEditableIFrame` + `wireInputEvents`
+  // engancha el keydown ahí, no en `viewerContainer` del documento
+  // principal). Un listener en `document`/`window` de esta app nunca ve
+  // estos eventos: el keydown de un iframe no se propaga al documento
+  // padre. Por eso el listener se cuelga directo de `editableDiv`, sea cual
+  // sea el documento (con o sin iframe) donde viva en cada caso.
+  //
+  // `documentHelper`/`editableDiv` están marcados `@private` en el .d.ts
+  // pero son miembros públicos reales en runtime (mismo criterio ya usado
+  // en este proyecto para `editor.updateListLevel`, `imageFormat.resize`,
+  // etc.) - no hay wrapper Container de por medio que los oculte.
+  useEffect(() => {
+    if (!isEditorReady) return;
+    const editor = containerRef.current;
+    const editableDiv = editor?.documentHelper?.editableDiv;
+    if (!editor || !editableDiv) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return;
+      // Siempre preventDefault mientras el editor tiene foco: evita que el
+      // Tab se escape a navegación de foco del navegador, aunque el cursor
+      // no esté en una lista (en ese caso `updateListLevel` es un no-op
+      // seguro confirmado por lectura de código - no rompe nada, pero
+      // tampoco genera indentación todavía; eso queda para otra sesión).
+      event.preventDefault();
+      editor.editor.updateListLevel(!event.shiftKey);
+    };
+
+    editableDiv.addEventListener('keydown', handleKeyDown);
+    return () => editableDiv.removeEventListener('keydown', handleKeyDown);
+  }, [isEditorReady]);
+
   return (
     <div style={{ display: 'flex', height: '100%', width: '100%' }}>
       <DocumentEditorComponent

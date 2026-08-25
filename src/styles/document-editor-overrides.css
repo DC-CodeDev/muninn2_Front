@@ -5,9 +5,15 @@
  * El pageContainer del Document Editor (clase .e-de-background) vive en el DOM
  * principal y material.css le fija background-color: #fff hardcodeado.
  * Aquí se reemplaza por el token de tema de la app en modo oscuro.
+ *
+ * OJO: .e-de-background es el CONTENEDOR que rodea la hoja, no la hoja en sí
+ * (esa la pinta un <canvas> por JS, ver useDocumentTheme.ts). Usa
+ * --color-contenedor-documento (= --bg-canvas, el tono más oscuro/apagado
+ * del palette) a propósito, distinto de --color-pagina-documento (= --bg-base,
+ * el color de la hoja), para que la hoja se distinga de lo que la rodea.
  */
 [data-theme='dark'] .e-de-background {
-  background-color: var(--color-pagina-documento);
+  background-color: var(--color-contenedor-documento);
 }
 
 /* Scrollbar del visor del Document Editor (id del contenedor = `${editorId}_viewerContainer`,

@@ -5,17 +5,30 @@ import { useTheme } from './useTheme';
 
 // Valores que debe pintar el canvas de la página del documento, espejo de los
 // tokens `--color-pagina-documento` de styles/tokens.css, que a su vez
-// referencian `--surface-raised` de cada modo:
-//   - :root (oscuro, default)  -> var(--surface-raised) = #292927
-//   - [data-theme='light']     -> var(--surface-raised) = #EDEAE3
+// referencian `--bg-base` de cada modo (el mismo tono que usan las sidebars;
+// distinto de `--surface-raised`, que ahora usa el contenedor que rodea la
+// hoja -- ver `--color-contenedor-documento` en tokens.css y su uso en
+// .e-de-background dentro de document-editor-overrides.css -- para que la
+// hoja se distinga de lo que la rodea en vez de fundirse con todo):
+//   - :root (oscuro, default)  -> var(--bg-base) = #1B1B1A
+//   - [data-theme='light']     -> var(--bg-base) = #F4F2ED
 // documentHelper.backgroundColor no acepta var(); necesita un string de color
 // resuelto, así que este mapa mantiene los valores resueltos a mano. Si se
-// cambia --surface-raised o --color-pagina-documento, actualizar aquí para que
-// el canvas siga calzando con el fondo del div .e-de-background.
+// cambia --bg-base o --color-pagina-documento, actualizar aquí para
+// que el canvas siga calzando (y con el borde, ver PAGE_OUTLINE_POR_TEMA).
 const COLOR_PAGINA_POR_TEMA = {
-  dark: '#292927',
-  light: '#EDEAE3',
+  dark: '#1B1B1A',
+  light: '#F4F2ED',
 } as const;
+
+// Color del borde de la hoja (propiedad pública `pageOutline` del
+// DocumentEditor; default de Syncfusion: '#000000' fijo, sin distinción de
+// tema). Se usa el mismo valor que el relleno de la hoja a propósito: el
+// contraste con el entorno ya lo da --color-contenedor-documento (más oscuro/
+// apagado), así que el borde no necesita marcar una línea dura -- queda
+// "invisible", fundido con el papel, en vez del borde negro fijo que trae
+// Syncfusion por default.
+const PAGE_OUTLINE_POR_TEMA = COLOR_PAGINA_POR_TEMA;
 
 type Theme = keyof typeof COLOR_PAGINA_POR_TEMA;
 
@@ -26,6 +39,10 @@ function leerTemaDelDom(): Theme {
 /**
  * Mantiene el color de fondo del canvas del documento sincronizado con el tema
  * de la app.
+ *
+ * También sincroniza `pageOutline` (borde de la hoja) con el mismo color, así
+ * la hoja queda del mismo tono que las sidebars en vez del borde negro fijo
+ * que trae Syncfusion por default.
  *
  * OJO: el color visible de la "hoja" no lo pinta el CSS (.e-de-background ya
  * se oscurece por override) sino un <canvas> que Syncfusion pinta por JS
@@ -75,6 +92,11 @@ export function useDocumentTheme(getEditor: () => DocumentEditor | null | undefi
       // El canvas no se repinta al setear la propiedad; el handler interno de
       // resize de Syncfusion redibuja la página con el color vigente.
       window.dispatchEvent(new Event('resize'));
+
+      // pageOutline sí es una @Property con NotifyPropertyChanges, así que
+      // asignarla directamente ya dispara su propio redibujado interno
+      // (viewer.updateScrollBars()); no necesita el truco del resize.
+      editor.pageOutline = PAGE_OUTLINE_POR_TEMA[theme];
     };
 
     if (editor) {

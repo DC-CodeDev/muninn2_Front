@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react';
-import { useFormatControls } from '../../hooks/useFormatControls';
+import { useFormatControls, type ParagraphStyleName } from '../../hooks/useFormatControls';
+
+// Etiquetas cortas para la UI de los botones de estilo de párrafo.
+const PARAGRAPH_STYLE_LABELS: Record<ParagraphStyleName, string> = {
+  Normal: 'N',
+  'Heading 1': 'H1',
+  'Heading 2': 'H2',
+  'Heading 3': 'H3',
+  'Heading 4': 'H4',
+};
 
 export function TextTabContent({
   format,
@@ -10,8 +19,13 @@ export function TextTabContent({
   toggleItalic,
   toggleUnderline,
   setAlignment,
+  setParagraphStyle,
+  applyQuote,
+  toggleBulletList,
+  toggleNumberedList,
   clearFormatting,
   fontOptions,
+  paragraphStyleOptions,
 }: {
   format: ReturnType<typeof useFormatControls>['format'];
   setFontFamily: ReturnType<typeof useFormatControls>['setFontFamily'];
@@ -21,8 +35,13 @@ export function TextTabContent({
   toggleItalic: ReturnType<typeof useFormatControls>['toggleItalic'];
   toggleUnderline: ReturnType<typeof useFormatControls>['toggleUnderline'];
   setAlignment: ReturnType<typeof useFormatControls>['setAlignment'];
+  setParagraphStyle: ReturnType<typeof useFormatControls>['setParagraphStyle'];
+  applyQuote: ReturnType<typeof useFormatControls>['applyQuote'];
+  toggleBulletList: ReturnType<typeof useFormatControls>['toggleBulletList'];
+  toggleNumberedList: ReturnType<typeof useFormatControls>['toggleNumberedList'];
   clearFormatting: ReturnType<typeof useFormatControls>['clearFormatting'];
   fontOptions: readonly string[];
+  paragraphStyleOptions: readonly ParagraphStyleName[];
 }) {
   const [showFontDropdown, setShowFontDropdown] = useState(false);
   const [fontSizeInput, setFontSizeInput] = useState(format.fontSize.toString());
@@ -384,6 +403,196 @@ export function TextTabContent({
             }}
           >
             U
+          </button>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+        <div
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--font-size-xs)',
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase',
+            color: 'var(--text-muted)',
+          }}
+        >
+          Estilo de párrafo
+        </div>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {paragraphStyleOptions.map((style) => {
+            const isActive = format.currentParagraphStyle === style;
+            return (
+              <button
+                key={style}
+                onClick={() => setParagraphStyle(style)}
+                style={{
+                  width: '44px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: isActive ? 'var(--state-active)' : 'var(--surface)',
+                  border: isActive ? '1px solid var(--border-strong)' : '1px solid var(--border)',
+                  borderRadius: 'var(--radius-lg)',
+                  fontSize: 'var(--font-size-md)',
+                  color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                }}
+                title={style}
+              >
+                {PARAGRAPH_STYLE_LABELS[style]}
+              </button>
+            );
+          })}
+          <button
+            onClick={applyQuote}
+            style={{
+              width: '44px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: format.isQuote ? 'var(--state-active)' : 'var(--surface)',
+              border: format.isQuote ? '1px solid var(--border-strong)' : '1px solid var(--border)',
+              borderRadius: 'var(--radius-lg)',
+              cursor: 'pointer',
+            }}
+            title="Cita"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 16 16"
+              stroke={format.isQuote ? 'var(--text-primary)' : 'var(--text-secondary)'}
+              strokeWidth="1.2"
+            >
+              <line
+                x1="3"
+                y1="3"
+                x2="3"
+                y2="13"
+                strokeWidth="2.4"
+              ></line>
+              <line x1="6.5" y1="5" x2="13.5" y2="5"></line>
+              <line x1="6.5" y1="8" x2="13.5" y2="8"></line>
+              <line x1="6.5" y1="11" x2="11" y2="11"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+        <div
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--font-size-xs)',
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase',
+            color: 'var(--text-muted)',
+          }}
+        >
+          Listas
+        </div>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <button
+            onClick={toggleBulletList}
+            style={{
+              width: '44px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: format.isBulletList ? 'var(--state-active)' : 'var(--surface)',
+              border: format.isBulletList ? '1px solid var(--border-strong)' : '1px solid var(--border)',
+              borderRadius: 'var(--radius-lg)',
+              cursor: 'pointer',
+            }}
+            title="Lista con viñetas"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 16 16"
+              stroke={format.isBulletList ? 'var(--text-primary)' : 'var(--text-secondary)'}
+              strokeWidth="1.2"
+            >
+              <circle cx="2.5" cy="4" r="1" fill={format.isBulletList ? 'var(--text-primary)' : 'var(--text-secondary)'} stroke="none"></circle>
+              <circle cx="2.5" cy="8" r="1" fill={format.isBulletList ? 'var(--text-primary)' : 'var(--text-secondary)'} stroke="none"></circle>
+              <circle cx="2.5" cy="12" r="1" fill={format.isBulletList ? 'var(--text-primary)' : 'var(--text-secondary)'} stroke="none"></circle>
+              <line x1="5.5" y1="4" x2="13.5" y2="4"></line>
+              <line x1="5.5" y1="8" x2="13.5" y2="8"></line>
+              <line x1="5.5" y1="12" x2="13.5" y2="12"></line>
+            </svg>
+          </button>
+          <button
+            onClick={toggleNumberedList}
+            style={{
+              width: '44px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: format.isNumberedList ? 'var(--state-active)' : 'var(--surface)',
+              border: format.isNumberedList ? '1px solid var(--border-strong)' : '1px solid var(--border)',
+              borderRadius: 'var(--radius-lg)',
+              cursor: 'pointer',
+            }}
+            title="Lista numerada"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16">
+              <text
+                x="0.5"
+                y="5.5"
+                fontSize="5"
+                fontFamily="var(--font-mono)"
+                fill={format.isNumberedList ? 'var(--text-primary)' : 'var(--text-secondary)'}
+              >
+                1
+              </text>
+              <text
+                x="0.5"
+                y="9.5"
+                fontSize="5"
+                fontFamily="var(--font-mono)"
+                fill={format.isNumberedList ? 'var(--text-primary)' : 'var(--text-secondary)'}
+              >
+                2
+              </text>
+              <text
+                x="0.5"
+                y="13.5"
+                fontSize="5"
+                fontFamily="var(--font-mono)"
+                fill={format.isNumberedList ? 'var(--text-primary)' : 'var(--text-secondary)'}
+              >
+                3
+              </text>
+              <line
+                x1="5.5"
+                y1="4"
+                x2="13.5"
+                y2="4"
+                stroke={format.isNumberedList ? 'var(--text-primary)' : 'var(--text-secondary)'}
+                strokeWidth="1.2"
+              ></line>
+              <line
+                x1="5.5"
+                y1="8"
+                x2="13.5"
+                y2="8"
+                stroke={format.isNumberedList ? 'var(--text-primary)' : 'var(--text-secondary)'}
+                strokeWidth="1.2"
+              ></line>
+              <line
+                x1="5.5"
+                y1="12"
+                x2="13.5"
+                y2="12"
+                stroke={format.isNumberedList ? 'var(--text-primary)' : 'var(--text-secondary)'}
+                strokeWidth="1.2"
+              ></line>
+            </svg>
           </button>
         </div>
       </div>

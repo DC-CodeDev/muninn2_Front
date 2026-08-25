@@ -257,8 +257,13 @@ export default function EditingSidebar({ collapsed, onToggle, getEditor }: Editi
             toggleItalic={formatControls.toggleItalic}
             toggleUnderline={formatControls.toggleUnderline}
             setAlignment={formatControls.setAlignment}
+            setParagraphStyle={formatControls.setParagraphStyle}
+            applyQuote={formatControls.applyQuote}
+            toggleBulletList={formatControls.toggleBulletList}
+            toggleNumberedList={formatControls.toggleNumberedList}
             clearFormatting={formatControls.clearFormatting}
             fontOptions={formatControls.FONT_FAMILY_OPTIONS}
+            paragraphStyleOptions={formatControls.PARAGRAPH_STYLE_OPTIONS}
           />
         )}
         {activeTab === 'parrafo' && <PlaceholderTabContent />}
